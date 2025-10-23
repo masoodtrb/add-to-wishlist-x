@@ -8,12 +8,20 @@ class FileStorage:
     """File-based storage for usernames as a temporary solution"""
 
     def __init__(self, storage_file: str = "stored_usernames.json"):
-        self.storage_file = storage_file
+        # Use /app/data directory in Docker, current directory otherwise
+        import os
+
+        if os.path.exists("/app/data"):
+            self.storage_file = f"/app/data/{storage_file}"
+        else:
+            self.storage_file = storage_file
         self.ensure_storage_file()
 
     def ensure_storage_file(self) -> None:
         """Ensure the storage file exists"""
         storage_path = Path(self.storage_file)
+        # Create parent directory if it doesn't exist
+        storage_path.parent.mkdir(parents=True, exist_ok=True)
         if not storage_path.exists():
             with storage_path.open("w") as f:
                 json.dump([], f)
@@ -31,8 +39,8 @@ class FileStorage:
         with Path(self.storage_file).open("w") as f:
             json.dump(usernames, f, indent=2)
 
-    def store_username(self, username: str) -> None:
-        """Store username in file with timestamp"""
+    def store_username(self, username: str) -> bool:
+        """Store username in file with timestamp. Returns True if stored, False if already exists"""
         usernames = self.load_usernames()
 
         # Check if username already exists
@@ -44,6 +52,8 @@ class FileStorage:
             }
             usernames.append(user_data)
             self.save_usernames(usernames)
+            return True
+        return False
 
     def get_stored_username(self, username: str) -> dict[str, Any] | None:
         """Get stored username data"""

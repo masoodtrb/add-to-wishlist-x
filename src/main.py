@@ -264,7 +264,23 @@ async def add_user(request: AddUserRequest, http_request: Request):
 
     try:
         # Store username in file storage
-        file_storage.store_username(username)
+        stored = file_storage.store_username(username)
+
+        if not stored:
+            # Username already exists - return 400 error
+            await audit_logger.log_event(
+                event_type=AuditEventType.USER_ADDED_TO_QUEUE,
+                level=AuditLogLevel.WARNING,
+                message=f"Username '{username}' already exists in file storage",
+                username=username,
+                request_id=request_id,
+                success=False,
+            )
+
+            raise HTTPException(
+                status_code=400,
+                detail=f"Username '{username}' already exists",
+            )
 
         # Log successful storage
         await audit_logger.log_event(
@@ -282,6 +298,9 @@ async def add_user(request: AddUserRequest, http_request: Request):
             username=username,
         )
 
+    except HTTPException:
+        # Re-raise HTTPException (like 400 for duplicate username)
+        raise
     except Exception as e:
         logger.error(f"Error storing username {username}: {str(e)}")
 

@@ -30,6 +30,9 @@ RUN poetry install --no-root --only=main
 # Copy source code
 COPY src/ ./src/
 
+# Create data directory and set permissions
+RUN mkdir -p /app/data && chmod 755 /app/data
+
 # Create non-root user
 RUN useradd --create-home --shell /bin/bash app && chown -R app:app /app
 USER app

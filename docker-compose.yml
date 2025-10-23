@@ -37,6 +37,7 @@ services:
         condition: service_healthy
     volumes:
       - ./src:/app/src  # Mount source code for development
+      - file_storage_data:/app/data  # Mount file storage data
     command: ["python", "-m", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -62,6 +63,7 @@ services:
         condition: service_healthy
     volumes:
       - ./src:/app/src  # Mount source code for development
+      - file_storage_data:/app/data  # Mount file storage data
     command: ["celery", "-A", "src.celery_app", "worker", "--loglevel=info", "--concurrency=2"]
     restart: unless-stopped
 
@@ -82,6 +84,7 @@ services:
         condition: service_healthy
     volumes:
       - ./src:/app/src  # Mount source code for development
+      - file_storage_data:/app/data  # Mount file storage data
       - celery_beat_data:/app/celerybeat-data
     command: ["celery", "-A", "src.celery_app", "beat", "--loglevel=info", "--schedule=/app/celerybeat-data/celerybeat-schedule"]
     restart: unless-stopped
@@ -105,12 +108,14 @@ services:
         condition: service_healthy
     volumes:
       - ./src:/app/src  # Mount source code for development
+      - file_storage_data:/app/data  # Mount file storage data
     command: ["celery", "-A", "src.celery_app", "flower", "--port=5555"]
     restart: unless-stopped
 
 volumes:
   redis_data:
   celery_beat_data:
+  file_storage_data:
 
 networks:
   default:
