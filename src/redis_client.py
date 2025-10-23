@@ -60,7 +60,7 @@ class RedisClient:
             )  # Cache for 5 minutes
 
     async def store_username(self, username: str) -> None:
-        """Store username in Redis with timestamp"""
+        """Store username in Redis with timestamp and 1 year TTL"""
         import datetime
 
         key = f"stored_username:{username}"
@@ -69,7 +69,8 @@ class RedisClient:
             "username": username,
             "stored_at": timestamp,
         }
-        await self.redis_client.set(key, json.dumps(data))
+        # Store with 1 year TTL (365 days * 24 hours * 3600 seconds)
+        await self.redis_client.setex(key, 365 * 24 * 3600, json.dumps(data))
 
     async def get_stored_username(self, username: str) -> dict[str, Any] | None:
         """Get stored username data"""
