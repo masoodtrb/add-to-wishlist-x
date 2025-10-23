@@ -282,3 +282,6 @@ dmypy.json
 
 # Cython
 cython_debug/
+
+# File storage
+stored_usernames.json

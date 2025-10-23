@@ -62,6 +62,7 @@ class RedisClient:
     async def store_username(self, username: str) -> None:
         """Store username in Redis with timestamp"""
         import datetime
+
         key = f"stored_username:{username}"
         timestamp = datetime.datetime.now().isoformat()
         data = {

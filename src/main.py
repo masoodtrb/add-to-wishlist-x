@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from audit_logger import AuditEventType, AuditLogLevel, audit_logger
 from config import settings
+from file_storage import file_storage
 from models import (
     AddUserRequest,
     AddUserResponse,
@@ -262,14 +263,14 @@ async def add_user(request: AddUserRequest, http_request: Request):
     )
 
     try:
-        # Store username in Redis
-        await redis_client.store_username(username)
+        # Store username in file storage
+        file_storage.store_username(username)
 
         # Log successful storage
         await audit_logger.log_event(
             event_type=AuditEventType.USER_ADDED_TO_QUEUE,
             level=AuditLogLevel.INFO,
-            message=f"Successfully stored username '{username}' in Redis",
+            message=f"Successfully stored username '{username}' in file storage",
             username=username,
             request_id=request_id,
             success=True,
@@ -277,7 +278,7 @@ async def add_user(request: AddUserRequest, http_request: Request):
 
         return AddUserResponse(
             success=True,
-            message=f"Username '{username}' stored successfully in Redis",
+            message=f"Username '{username}' stored successfully in file storage",
             username=username,
         )
 
@@ -322,8 +323,8 @@ async def get_users(http_request: Request):
     )
 
     try:
-        # Get all stored usernames from Redis
-        users = await redis_client.get_all_stored_usernames()
+        # Get all stored usernames from file storage
+        users = file_storage.get_all_stored_usernames()
 
         # Log successful retrieval
         await audit_logger.log_event(
@@ -354,6 +355,37 @@ async def get_users(http_request: Request):
             error_message=str(e),
         )
 
+        raise HTTPException(
+            status_code=500,
+            detail="Internal server error. Please try again later.",
+        )
+
+
+@app.get("/file-storage-stats", response_model=dict)
+async def get_file_storage_stats(http_request: Request):
+    """
+    Get statistics about file storage
+    """
+    try:
+        # Get count of stored usernames
+        count = file_storage.get_stored_usernames_count()
+
+        # Get backup data
+        backup_data = file_storage.backup_stored_usernames()
+
+        # Check file storage health
+        file_healthy = file_storage.health_check()
+
+        return {
+            "success": True,
+            "stored_usernames_count": count,
+            "file_storage_healthy": file_healthy,
+            "backup_data": backup_data,
+            "message": f"Found {count} stored usernames",
+        }
+
+    except Exception as e:
+        logger.error(f"Error getting file storage stats: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail="Internal server error. Please try again later.",
