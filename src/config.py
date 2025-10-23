@@ -9,6 +9,12 @@ class Settings:
     # X API Configuration
     X_BEARER_TOKEN: str = os.getenv("X_BEARER_TOKEN", "")
     X_LIST_ID: str = os.getenv("X_LIST_ID", "1979623501649567798")
+    
+    # X OAuth 1.0a Configuration (for list management)
+    X_CONSUMER_KEY: str = os.getenv("X_CONSUMER_KEY", "")
+    X_CONSUMER_SECRET: str = os.getenv("X_CONSUMER_SECRET", "")
+    X_ACCESS_TOKEN: str = os.getenv("X_ACCESS_TOKEN", "")
+    X_ACCESS_TOKEN_SECRET: str = os.getenv("X_ACCESS_TOKEN_SECRET", "")
 
     # Redis Configuration
     REDIS_HOST: str = os.getenv("REDIS_HOST", "localhost")
