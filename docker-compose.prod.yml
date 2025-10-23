@@ -1,0 +1,153 @@
+services:
+  redis:
+      image: redis:7-alpine
+      container_name: x-list-redis-prod
+      ports:
+        - "6379:6379"
+      environment:
+        - REDIS_PASSWORD=${REDIS_PASSWORD}
+      command: >
+        sh -c "
+          if [ -n \"$$REDIS_PASSWORD\" ]; then
+            redis-server --requirepass $$REDIS_PASSWORD --appendonly yes
+          else
+            redis-server --appendonly yes
+          fi
+        "
+      volumes:
+        - redis_data:/data
+      healthcheck:
+        test: ["CMD", "redis-cli", "ping"]
+        interval: 10s
+        timeout: 5s
+        retries: 5
+        start_period: 10s
+      restart: always
+      networks:
+        - app-network
+  # Redis service
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: add-wishlist-redis-prod
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis_data:/data
+  #   command: redis-server --appendonly yes
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "ping"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   restart: unless-stopped
+  #   networks:
+  #     - app-network
+
+  # FastAPI application
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: add-wishlist-api-prod
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+    env_file:
+      - .env.prod
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: ["python", "-m", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # Celery worker
+  celery-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: add-wishlist-celery-worker-prod
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+    env_file:
+      - .env.prod
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: ["celery", "-A", "src.celery_app", "worker", "--loglevel=info", "--concurrency=4", "--max-tasks-per-child=1000"]
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # Celery beat scheduler
+  celery-beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: add-wishlist-celery-beat-prod
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+    env_file:
+      - .env.prod
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - celery_beat_data:/app/celerybeat-data
+    user: "0:0"  # Run as root to fix permissions
+    command: >
+      sh -c "
+        mkdir -p /app/celerybeat-data &&
+        chown -R app:app /app/celerybeat-data &&
+        su -s /bin/bash -c 'celery -A src.celery_app beat --loglevel=info --schedule=/app/celerybeat-data/celerybeat-schedule' app
+      "
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # Flower monitoring (optional - remove in production if not needed)
+  flower:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: add-wishlist-flower-prod
+    ports:
+      - "5555:5555"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+    env_file:
+      - .env.prod
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: ["celery", "-A", "src.celery_app", "flower", "--port=5555"]
+    restart: unless-stopped
+    networks:
+      - app-network
+
+
+volumes:
+  redis_data:
+  celery_beat_data:
+
+networks:
+  app-network:
+    driver: bridge

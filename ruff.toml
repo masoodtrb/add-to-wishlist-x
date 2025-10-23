@@ -1,0 +1,35 @@
+# Ruff configuration file
+# See: https://docs.astral.sh/ruff/configuration/
+
+line-length = 88
+target-version = "py314"
+
+[lint]
+select = [
+  "E", # pycodestyle errors
+  "W", # pycodestyle warnings
+  "F", # pyflakes
+  "A", # flake8-builtins
+  "COM", # flake8-commas
+  "C4", # flake8-comprehensions
+  "Q", # flake8-quotes
+  "SIM", # flake8-simplify
+  "PTH", # flake8-use-pathlib
+  "I", # isort
+  "N", # pep8-naming
+  "UP", # pyupgrade
+  "S", # bandit
+]
+
+ignore = [
+  "S101", # assert usage (allow in tests)
+  "S104", # hardcoded bind all interfaces
+  "S603", # subprocess call
+  "S607", # subprocess call with shell
+]
+
+[lint.isort]
+known-first-party = ["src"]
+
+[lint.per-file-ignores]
+"tests/*" = ["S101", "S106", "S108"]
