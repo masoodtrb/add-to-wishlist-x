@@ -63,7 +63,7 @@ services:
       redis:
         condition: service_healthy
     volumes:
-      - file_storage_data:/app/data  # Mount file storage data
+      - ./data:/app/data  # Mount current machine data directory
     command: ["python", "-m", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -91,7 +91,7 @@ services:
       redis:
         condition: service_healthy
     volumes:
-      - file_storage_data:/app/data  # Mount file storage data
+      - ./data:/app/data  # Mount current machine data directory
     command: ["celery", "-A", "src.celery_app", "worker", "--loglevel=info", "--concurrency=4", "--max-tasks-per-child=1000"]
     restart: unless-stopped
     networks:
@@ -113,7 +113,7 @@ services:
       redis:
         condition: service_healthy
     volumes:
-      - file_storage_data:/app/data  # Mount file storage data
+      - ./data:/app/data  # Mount current machine data directory
       - celery_beat_data:/app/celerybeat-data
     command: ["celery", "-A", "src.celery_app", "beat", "--loglevel=info", "--schedule=/app/celerybeat-data/celerybeat-schedule"]
     restart: unless-stopped
@@ -138,7 +138,7 @@ services:
       redis:
         condition: service_healthy
     volumes:
-      - file_storage_data:/app/data  # Mount file storage data
+      - ./data:/app/data  # Mount current machine data directory
     command: ["celery", "-A", "src.celery_app", "flower", "--port=5555"]
     restart: unless-stopped
     networks:
@@ -148,7 +148,6 @@ services:
 volumes:
   redis_data:
   celery_beat_data:
-  file_storage_data:
 
 networks:
   app-network:

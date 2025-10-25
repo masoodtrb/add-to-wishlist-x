@@ -9,22 +9,27 @@ class FileStorage:
 
     def __init__(self, storage_file: str = "stored_usernames.json"):
         # Use /app/data directory in Docker, current directory otherwise
-        import os
-
-        if os.path.exists("/app/data"):
+        if Path("/app/data").exists():
+            # Running in Docker
             self.storage_file = f"/app/data/{storage_file}"
         else:
-            self.storage_file = storage_file
+            # Running locally
+            self.storage_file = f"./data/{storage_file}"
+
         self.ensure_storage_file()
 
     def ensure_storage_file(self) -> None:
-        """Ensure the storage file exists"""
+        """Ensure the storage file exists - only create if truly missing"""
         storage_path = Path(self.storage_file)
-        # Create parent directory if it doesn't exist
-        storage_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Only create the file if it doesn't exist at all
         if not storage_path.exists():
+            # Create parent directory if it doesn't exist
+            storage_path.parent.mkdir(parents=True, exist_ok=True)
+            # Only create empty file if it's truly new
             with storage_path.open("w") as f:
                 json.dump([], f)
+        # If file exists, don't touch it - preserve existing data
 
     def load_usernames(self) -> list[dict[str, Any]]:
         """Load usernames from file"""
@@ -40,7 +45,10 @@ class FileStorage:
             json.dump(usernames, f, indent=2)
 
     def store_username(self, username: str) -> bool:
-        """Store username in file with timestamp. Returns True if stored, False if already exists"""
+        """Store username in file with timestamp.
+
+        Returns True if stored, False if already exists
+        """
         usernames = self.load_usernames()
 
         # Check if username already exists

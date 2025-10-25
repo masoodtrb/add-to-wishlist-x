@@ -4,7 +4,7 @@ from typing import Any
 import httpx
 from requests_oauthlib import OAuth1Session
 
-from .config import settings
+from config import settings
 
 logger = logging.getLogger(__name__)
 
